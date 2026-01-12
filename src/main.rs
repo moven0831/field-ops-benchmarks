@@ -5,6 +5,10 @@ use field_ops_benchmarks::{
     Operation,
 };
 
+// Embedded metallib (compiled at build time)
+#[cfg(feature = "metal")]
+const METAL_LIB: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/benchmarks.metallib"));
+
 #[derive(Parser, Debug)]
 #[command(name = "field-ops-bench")]
 #[command(about = "GPU benchmark for u256/field arithmetic operations")]
@@ -158,61 +162,123 @@ fn run_benchmarks(
     operations: &[Operation],
     config: &BenchmarkConfig,
 ) -> BenchmarkReport {
-    let mut report = BenchmarkReport::new(
-        format!("{} Device", backend.name()),
-        backend.name().to_string(),
-    );
+    match backend {
+        #[cfg(feature = "metal")]
+        Backend::Metal => run_metal_benchmarks(operations, config),
+
+        #[cfg(feature = "webgpu")]
+        Backend::WebGPU => run_placeholder_benchmarks(backend, operations, config),
+
+        #[allow(unreachable_patterns)]
+        _ => {
+            eprintln!("Backend {} not compiled in", backend.name());
+            BenchmarkReport::new("Unknown".to_string(), "Unknown".to_string())
+        }
+    }
+}
+
+#[cfg(feature = "metal")]
+fn run_metal_benchmarks(operations: &[Operation], config: &BenchmarkConfig) -> BenchmarkReport {
+    use field_ops_benchmarks::metal::MetalRunner;
 
     let info_style = Style::new().dim();
+    let error_style = Style::new().red();
 
+    // Create Metal runner
+    let mut runner = match MetalRunner::new() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!(
+                "{}",
+                error_style.apply_to(format!("Failed to create Metal runner: {}", e))
+            );
+            return BenchmarkReport::new("Unknown".to_string(), "Metal".to_string());
+        }
+    };
+
+    let device_name = runner.device_name();
+    println!("Device: {}", device_name);
+
+    // Load the embedded metallib
+    if let Err(e) = runner.load_library_data(METAL_LIB) {
+        eprintln!(
+            "{}",
+            error_style.apply_to(format!("Failed to load Metal library: {}", e))
+        );
+        return BenchmarkReport::new(device_name, "Metal".to_string());
+    }
+
+    let mut report = BenchmarkReport::new(device_name, "Metal".to_string());
+
+    // Run each benchmark
     for op in operations {
         println!(
             "{}",
             info_style.apply_to(format!("  Running {}...", op.name()))
         );
 
-        // TODO: Implement actual benchmark execution
-        // For now, create placeholder results
-        let result = placeholder_result(backend, *op, config);
-        report.add_result(result);
+        match runner.run_benchmark(*op, config) {
+            Ok(result) => {
+                report.add_result(result);
+            }
+            Err(e) => {
+                eprintln!("{}", error_style.apply_to(format!("    Failed: {}", e)));
+            }
+        }
     }
 
     report
 }
 
-/// Placeholder result until actual GPU execution is implemented
-fn placeholder_result(
+/// Placeholder benchmarks for backends not yet implemented
+fn run_placeholder_benchmarks(
     backend: Backend,
-    operation: Operation,
+    operations: &[Operation],
     config: &BenchmarkConfig,
-) -> field_ops_benchmarks::results::BenchmarkResult {
+) -> BenchmarkReport {
     use std::time::Duration;
 
-    // Generate fake timing data for demonstration
-    let timings: Vec<Duration> = (0..config.measurement_iterations)
-        .map(|i| {
-            let base_ms = match operation {
-                Operation::U32Baseline => 0.5,
-                Operation::U64Native => 0.9,
-                Operation::U64Emulated => 2.0,
-                Operation::BigIntMul => 45.0,
-                Operation::FieldMul => 52.0,
-                Operation::FieldAdd => 1.0,
-                Operation::FieldSub => 1.0,
-            };
-            // Add some variance
-            let variance = (i as f64 / 100.0) * 0.1;
-            Duration::from_secs_f64((base_ms + variance) / 1000.0)
-        })
-        .collect();
+    let info_style = Style::new().dim();
 
-    field_ops_benchmarks::results::BenchmarkResult::from_timings(
-        backend,
-        operation,
-        config.workgroup_size,
-        config.total_threads(),
-        config.ops_per_thread,
-        &timings,
-        Some(1.5), // Assume 1.5 GHz GPU clock
-    )
+    let mut report = BenchmarkReport::new(
+        format!("{} Device (placeholder)", backend.name()),
+        backend.name().to_string(),
+    );
+
+    for op in operations {
+        println!(
+            "{}",
+            info_style.apply_to(format!("  Running {} (placeholder)...", op.name()))
+        );
+
+        // Generate fake timing data
+        let timings: Vec<Duration> = (0..config.measurement_iterations)
+            .map(|i| {
+                let base_ms = match op {
+                    Operation::U32Baseline => 0.5,
+                    Operation::U64Native => 0.9,
+                    Operation::U64Emulated => 2.0,
+                    Operation::BigIntMul => 45.0,
+                    Operation::FieldMul => 52.0,
+                    Operation::FieldAdd => 1.0,
+                    Operation::FieldSub => 1.0,
+                };
+                let variance = (i as f64 / 100.0) * 0.1;
+                Duration::from_secs_f64((base_ms + variance) / 1000.0)
+            })
+            .collect();
+
+        let result = field_ops_benchmarks::results::BenchmarkResult::from_timings(
+            backend,
+            *op,
+            config.workgroup_size,
+            config.total_threads(),
+            config.ops_per_thread,
+            &timings,
+            Some(1.5),
+        );
+        report.add_result(result);
+    }
+
+    report
 }

@@ -23,6 +23,11 @@ impl MetalRunner {
         self.ctx.device_name()
     }
 
+    /// Load metallib from embedded bytes
+    pub fn load_library_data(&mut self, data: &[u8]) -> Result<(), BenchmarkError> {
+        self.ctx.load_library_data(data)
+    }
+
     /// Run a benchmark with the given configuration
     pub fn run_benchmark(
         &self,
