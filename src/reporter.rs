@@ -103,6 +103,123 @@ pub fn export_json(report: &BenchmarkReport, path: &str) -> std::io::Result<()> 
     std::fs::write(path, json)
 }
 
+/// Print comparison between multiple backend reports
+pub fn print_comparison(reports: &[BenchmarkReport]) {
+    let header_style = Style::new().bold().cyan();
+    let label_style = Style::new().bold();
+    let good_style = Style::new().green();
+    let warn_style = Style::new().yellow();
+
+    println!();
+    println!(
+        "{}",
+        header_style.apply_to(
+            "================================================================================"
+        )
+    );
+    println!(
+        "{}",
+        header_style.apply_to("                          COMPARISON SUMMARY")
+    );
+    println!(
+        "{}",
+        header_style.apply_to(
+            "================================================================================"
+        )
+    );
+    println!();
+
+    // Collect all unique operations across reports
+    let mut all_ops: Vec<String> = Vec::new();
+    for report in reports {
+        for result in &report.results {
+            if !all_ops.contains(&result.operation) {
+                all_ops.push(result.operation.clone());
+            }
+        }
+    }
+
+    // Print header with backend names
+    print!("{:<20}", label_style.apply_to("Operation"));
+    for report in reports {
+        print!(" {:>15}", label_style.apply_to(&report.device_vendor));
+    }
+    if reports.len() == 2 {
+        print!(" {:>12}", label_style.apply_to("Ratio"));
+    }
+    println!();
+    println!("{}", "-".repeat(20 + reports.len() * 16 + if reports.len() == 2 { 13 } else { 0 }));
+
+    // Print comparison for each operation
+    for op in &all_ops {
+        print!("{:<20}", op);
+
+        let mut gops_values: Vec<Option<f64>> = Vec::new();
+
+        for report in reports {
+            if let Some(result) = report.results.iter().find(|r| &r.operation == op) {
+                print!(" {:>12.2} GOP/s", result.gops_per_second);
+                gops_values.push(Some(result.gops_per_second));
+            } else {
+                print!(" {:>15}", "-");
+                gops_values.push(None);
+            }
+        }
+
+        // Calculate ratio if we have exactly 2 backends with values
+        if reports.len() == 2 {
+            if let (Some(Some(v1)), Some(Some(v2))) = (gops_values.get(0), gops_values.get(1)) {
+                if *v2 > 0.0 {
+                    let ratio = v1 / v2;
+                    if ratio > 1.0 {
+                        print!(" {}", good_style.apply_to(format!("{:>10.2}x", ratio)));
+                    } else {
+                        print!(" {}", warn_style.apply_to(format!("{:>10.2}x", ratio)));
+                    }
+                }
+            }
+        }
+        println!();
+    }
+
+    println!();
+
+    // Print legend
+    if reports.len() == 2 {
+        println!(
+            "{}",
+            label_style.apply_to("Ratio: First backend / Second backend (higher = first is faster)")
+        );
+    }
+
+    println!(
+        "{}",
+        header_style.apply_to(
+            "================================================================================"
+        )
+    );
+    println!();
+}
+
+/// Merge multiple reports into a single combined report
+pub fn merge_reports(reports: &[BenchmarkReport]) -> BenchmarkReport {
+    let device_names: Vec<&str> = reports.iter().map(|r| r.device_name.as_str()).collect();
+    let vendors: Vec<&str> = reports.iter().map(|r| r.device_vendor.as_str()).collect();
+
+    let mut combined = BenchmarkReport::new(
+        device_names.join(" + "),
+        vendors.join(" + "),
+    );
+
+    for report in reports {
+        for result in &report.results {
+            combined.add_result(result.clone());
+        }
+    }
+
+    combined
+}
+
 /// Export results to CSV file
 pub fn export_csv(report: &BenchmarkReport, path: &str) -> std::io::Result<()> {
     let mut file = std::fs::File::create(path)?;

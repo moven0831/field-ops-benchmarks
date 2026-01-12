@@ -17,6 +17,10 @@ struct Args {
     #[arg(long)]
     batch: bool,
 
+    /// Run comparison between all available backends
+    #[arg(long)]
+    compare: bool,
+
     /// Backend to use (metal, webgpu)
     #[arg(long, short = 'b')]
     backend: Option<String>,
@@ -45,7 +49,9 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    if args.batch {
+    if args.compare {
+        run_comparison_mode(args);
+    } else if args.batch {
         run_batch_mode(args);
     } else {
         run_interactive_mode();
@@ -152,6 +158,81 @@ fn run_batch_mode(args: Args) {
         } else {
             if let Err(e) = reporter::export_json(&report, &output) {
                 eprintln!("Failed to save JSON: {}", e);
+            }
+        }
+    }
+}
+
+fn run_comparison_mode(args: Args) {
+    let header_style = Style::new().bold().cyan();
+
+    println!();
+    println!(
+        "{}",
+        header_style.apply_to("Running comparison across all available backends...")
+    );
+    println!();
+
+    let available_backends = Backend::available();
+    if available_backends.is_empty() {
+        eprintln!("No GPU backends available!");
+        return;
+    }
+
+    let config = BenchmarkConfig::default()
+        .with_workgroup_size(args.workgroup)
+        .with_ops_per_thread(args.ops)
+        .with_iterations(args.iterations);
+
+    let mut all_reports: Vec<BenchmarkReport> = Vec::new();
+
+    for backend in &available_backends {
+        println!();
+        println!(
+            "{}",
+            header_style.apply_to(format!("=== {} Backend ===", backend.name()))
+        );
+
+        let operations: Vec<Operation> = match args.op.as_deref() {
+            Some("all") | None => Operation::available_for(*backend),
+            Some(op_name) => {
+                if let Some(op) = Operation::all().into_iter().find(|o| o.name() == op_name) {
+                    if Operation::available_for(*backend).contains(&op) {
+                        vec![op]
+                    } else {
+                        println!("  Operation {} not available for {}", op_name, backend.name());
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
+        };
+
+        let report = run_benchmarks(*backend, &operations, &config);
+        reporter::print_results(&report);
+        all_reports.push(report);
+    }
+
+    // Print comparison summary
+    if all_reports.len() > 1 {
+        reporter::print_comparison(&all_reports);
+    }
+
+    // Export combined results if requested
+    if let Some(output) = args.output {
+        let combined = reporter::merge_reports(&all_reports);
+        if output.ends_with(".csv") {
+            if let Err(e) = reporter::export_csv(&combined, &output) {
+                eprintln!("Failed to save CSV: {}", e);
+            } else {
+                println!("Results saved to {}", output);
+            }
+        } else {
+            if let Err(e) = reporter::export_json(&combined, &output) {
+                eprintln!("Failed to save JSON: {}", e);
+            } else {
+                println!("Results saved to {}", output);
             }
         }
     }
