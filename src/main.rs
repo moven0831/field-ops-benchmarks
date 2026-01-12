@@ -167,7 +167,7 @@ fn run_benchmarks(
         Backend::Metal => run_metal_benchmarks(operations, config),
 
         #[cfg(feature = "webgpu")]
-        Backend::WebGPU => run_placeholder_benchmarks(backend, operations, config),
+        Backend::WebGPU => run_webgpu_benchmarks(operations, config),
 
         #[allow(unreachable_patterns)]
         _ => {
@@ -230,7 +230,52 @@ fn run_metal_benchmarks(operations: &[Operation], config: &BenchmarkConfig) -> B
     report
 }
 
+#[cfg(feature = "webgpu")]
+fn run_webgpu_benchmarks(operations: &[Operation], config: &BenchmarkConfig) -> BenchmarkReport {
+    use field_ops_benchmarks::webgpu::WebGpuRunner;
+
+    let info_style = Style::new().dim();
+    let error_style = Style::new().red();
+
+    // Create WebGPU runner
+    let runner = match WebGpuRunner::new() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!(
+                "{}",
+                error_style.apply_to(format!("Failed to create WebGPU runner: {}", e))
+            );
+            return BenchmarkReport::new("Unknown".to_string(), "WebGPU".to_string());
+        }
+    };
+
+    let device_name = runner.device_name();
+    println!("Device: {}", device_name);
+
+    let mut report = BenchmarkReport::new(device_name, "WebGPU".to_string());
+
+    // Run each benchmark
+    for op in operations {
+        println!(
+            "{}",
+            info_style.apply_to(format!("  Running {}...", op.name()))
+        );
+
+        match runner.run_benchmark(*op, config) {
+            Ok(result) => {
+                report.add_result(result);
+            }
+            Err(e) => {
+                eprintln!("{}", error_style.apply_to(format!("    Failed: {}", e)));
+            }
+        }
+    }
+
+    report
+}
+
 /// Placeholder benchmarks for backends not yet implemented
+#[allow(dead_code)]
 fn run_placeholder_benchmarks(
     backend: Backend,
     operations: &[Operation],

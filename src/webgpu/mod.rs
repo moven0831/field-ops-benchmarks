@@ -1,3 +1,9 @@
 //! WebGPU backend (cross-platform)
 
-// TODO: Implement in Phase 3
+mod device;
+mod pipeline;
+mod runner;
+
+pub use device::WebGpuContext;
+pub use pipeline::WebGpuPipeline;
+pub use runner::WebGpuRunner;
