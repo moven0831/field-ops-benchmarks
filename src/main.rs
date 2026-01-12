@@ -13,7 +13,7 @@ struct Args {
     #[arg(long)]
     batch: bool,
 
-    /// Backend to use (metal, webgpu, vulkan)
+    /// Backend to use (metal, webgpu)
     #[arg(long, short = 'b')]
     backend: Option<String>,
 
@@ -90,10 +90,9 @@ fn run_batch_mode(args: Args) {
     let backend = match args.backend.as_deref() {
         Some("metal") => Backend::Metal,
         Some("webgpu") => Backend::WebGPU,
-        Some("vulkan") => Backend::Vulkan,
         Some(other) => {
             eprintln!("Unknown backend: {}", other);
-            eprintln!("Available: metal, webgpu, vulkan");
+            eprintln!("Available: metal, webgpu");
             return;
         }
         None => {

@@ -2,13 +2,12 @@
 name = "field-ops-benchmarks"
 version = "0.1.0"
 edition = "2021"
-description = "GPU compute benchmark for u256/field arithmetic across Metal, Vulkan, and WebGPU"
+description = "GPU compute benchmark for u256/field arithmetic across Metal and WebGPU"
 build = "build.rs"
 
 [features]
 default = ["metal", "webgpu"]
 metal = ["dep:metal", "dep:objc", "dep:block"]
-vulkan = ["dep:vulkano", "dep:vulkano-shaders"]
 webgpu = ["dep:wgpu"]
 
 [dependencies]
@@ -16,10 +15,6 @@ webgpu = ["dep:wgpu"]
 metal = { version = "0.29", optional = true }
 objc = { version = "0.2", optional = true }
 block = { version = "0.1", optional = true }
-
-# Vulkan
-vulkano = { version = "0.34", optional = true }
-vulkano-shaders = { version = "0.34", optional = true }
 
 # WebGPU
 wgpu = { version = "23", optional = true }

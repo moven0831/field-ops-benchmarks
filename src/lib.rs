@@ -9,9 +9,6 @@ pub mod metal;
 #[cfg(feature = "webgpu")]
 pub mod webgpu;
 
-#[cfg(feature = "vulkan")]
-pub mod vulkan;
-
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -43,7 +40,6 @@ pub enum BenchmarkError {
 pub enum Backend {
     Metal,
     WebGPU,
-    Vulkan,
 }
 
 impl Backend {
@@ -51,8 +47,12 @@ impl Backend {
         match self {
             Backend::Metal => "Metal",
             Backend::WebGPU => "WebGPU",
-            Backend::Vulkan => "Vulkan",
         }
+    }
+
+    /// Returns true if this backend has native u64 support
+    pub fn has_native_u64(&self) -> bool {
+        matches!(self, Backend::Metal)
     }
 
     pub fn is_available(&self) -> bool {
@@ -66,16 +66,11 @@ impl Backend {
             Backend::WebGPU => true,
             #[cfg(not(feature = "webgpu"))]
             Backend::WebGPU => false,
-
-            #[cfg(feature = "vulkan")]
-            Backend::Vulkan => true,
-            #[cfg(not(feature = "vulkan"))]
-            Backend::Vulkan => false,
         }
     }
 
     pub fn all() -> Vec<Backend> {
-        vec![Backend::Metal, Backend::WebGPU, Backend::Vulkan]
+        vec![Backend::Metal, Backend::WebGPU]
     }
 
     pub fn available() -> Vec<Backend> {
@@ -120,8 +115,8 @@ impl Operation {
     pub fn description(&self) -> &'static str {
         match self {
             Operation::U32Baseline => "Native u32 multiply-add",
-            Operation::U64Native => "Native 64-bit operations (Metal/Vulkan only)",
-            Operation::U64Emulated => "u64 via u32 pairs with carry",
+            Operation::U64Native => "Native 64-bit operations (Metal only)",
+            Operation::U64Emulated => "u64 via u32 pairs with carry (WebGPU only)",
             Operation::BigIntMul => "BigInt256 multiplication (16x16-bit limbs)",
             Operation::FieldMul => "BN254 Montgomery field multiplication",
             Operation::FieldAdd => "BN254 field addition",
@@ -129,8 +124,14 @@ impl Operation {
         }
     }
 
+    /// Returns true if this operation requires native u64 support
     pub fn requires_native_u64(&self) -> bool {
         matches!(self, Operation::U64Native)
+    }
+
+    /// Returns true if this operation is only for backends without native u64
+    pub fn is_emulation_only(&self) -> bool {
+        matches!(self, Operation::U64Emulated)
     }
 
     pub fn all() -> Vec<Operation> {
@@ -145,12 +146,18 @@ impl Operation {
         ]
     }
 
+    /// Returns operations available for a specific backend
     pub fn available_for(backend: Backend) -> Vec<Operation> {
         Self::all()
             .into_iter()
             .filter(|op| {
+                // u64_native only available on backends with native u64 support
                 if op.requires_native_u64() {
-                    matches!(backend, Backend::Metal | Backend::Vulkan)
+                    backend.has_native_u64()
+                }
+                // u64_emulated only needed for backends without native u64
+                else if op.is_emulation_only() {
+                    !backend.has_native_u64()
                 } else {
                     true
                 }
