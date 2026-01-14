@@ -3,7 +3,7 @@ use crate::{Backend, Operation};
 /// Benchmark configuration
 #[derive(Debug, Clone)]
 pub struct BenchmarkConfig {
-    /// Number of operations per thread
+    /// Number of operations per thread (used when auto_calibrate is false)
     pub ops_per_thread: u32,
 
     /// Workgroup size for GPU dispatch
@@ -20,17 +20,21 @@ pub struct BenchmarkConfig {
 
     /// Random seed for input data
     pub seed: u32,
+
+    /// Use operation-specific ops_per_thread for faster completion
+    pub auto_calibrate: bool,
 }
 
 impl Default for BenchmarkConfig {
     fn default() -> Self {
         Self {
-            ops_per_thread: 10_000,
+            ops_per_thread: 100,
             workgroup_size: 64,
             num_workgroups: 1024,
-            warmup_iterations: 10,
-            measurement_iterations: 100,
+            warmup_iterations: 3,
+            measurement_iterations: 10,
             seed: 0x12345678,
+            auto_calibrate: true,
         }
     }
 }
@@ -52,6 +56,24 @@ impl BenchmarkConfig {
     pub fn with_iterations(mut self, iterations: u32) -> Self {
         self.measurement_iterations = iterations;
         self
+    }
+
+    /// Enable or disable auto-calibration
+    pub fn with_auto_calibrate(mut self, enabled: bool) -> Self {
+        self.auto_calibrate = enabled;
+        self
+    }
+
+    /// Get operation-specific config (uses calibrated ops_per_thread if auto_calibrate is true)
+    pub fn for_operation(&self, op: Operation) -> Self {
+        if self.auto_calibrate {
+            Self {
+                ops_per_thread: op.calibrated_ops_per_thread(),
+                ..self.clone()
+            }
+        } else {
+            self.clone()
+        }
     }
 
     /// Total number of threads

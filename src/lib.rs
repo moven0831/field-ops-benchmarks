@@ -129,6 +129,19 @@ impl Operation {
         matches!(self, Operation::U64Native)
     }
 
+    /// Returns calibrated ops_per_thread for fast execution (~3-5 seconds per operation)
+    pub fn calibrated_ops_per_thread(&self) -> u32 {
+        match self {
+            Operation::U32Baseline => 1_000,
+            Operation::U64Native => 1_000,
+            Operation::U64Emulated => 500,
+            Operation::BigIntMul => 25,
+            Operation::FieldMul => 20,
+            Operation::FieldAdd => 500,
+            Operation::FieldSub => 500,
+        }
+    }
+
     /// Returns true if this operation is only for backends without native u64
     pub fn is_emulation_only(&self) -> bool {
         matches!(self, Operation::U64Emulated)

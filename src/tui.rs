@@ -51,7 +51,7 @@ impl InteractiveTui {
 
         loop {
             let choices = &[
-                "Select Backend",
+                "Select Backend(s)",
                 "Select Operation",
                 "Configure Parameters",
                 "Run Benchmark",
@@ -67,10 +67,13 @@ impl InteractiveTui {
 
             match selection {
                 0 => {
-                    if let Some(backend) = self.select_backend() {
+                    if let Some(backends) = self.select_backends() {
+                        // Get operations from first backend for selection UI
+                        // Operations will be filtered per-backend during execution
+                        let first_backend = backends[0];
                         return Some(BenchmarkSelection {
-                            backend,
-                            operations: self.select_operations(backend)?,
+                            backends,
+                            operations: self.select_operations(first_backend)?,
                             config: self.configure_parameters()?,
                         });
                     }
@@ -81,23 +84,31 @@ impl InteractiveTui {
         }
     }
 
-    /// Quick run - select backend and run all operations with defaults
+    /// Quick run - select backend(s) and run all operations with defaults
     pub fn quick_run(&self) -> Option<BenchmarkSelection> {
         self.show_banner();
 
-        let backend = self.select_backend()?;
-        let operations = Operation::available_for(backend);
+        let backends = self.select_backends()?;
+
+        // Collect all unique operations available across selected backends
+        let mut operations: Vec<Operation> = backends
+            .iter()
+            .flat_map(|b| Operation::available_for(*b))
+            .collect();
+        operations.sort_by_key(|op| op.name());
+        operations.dedup();
+
         let config = BenchmarkConfig::default();
 
         Some(BenchmarkSelection {
-            backend,
+            backends,
             operations,
             config,
         })
     }
 
-    /// Select a GPU backend
-    pub fn select_backend(&self) -> Option<Backend> {
+    /// Select GPU backend(s) - supports multi-selection
+    pub fn select_backends(&self) -> Option<Vec<Backend>> {
         let available = Backend::available();
 
         if available.is_empty() {
@@ -105,7 +116,8 @@ impl InteractiveTui {
             return None;
         }
 
-        let items: Vec<String> = Backend::all()
+        let all_backends = Backend::all();
+        let items: Vec<String> = all_backends
             .iter()
             .map(|b| {
                 if b.is_available() {
@@ -116,21 +128,39 @@ impl InteractiveTui {
             })
             .collect();
 
-        let selection = Select::with_theme(&self.theme)
-            .with_prompt("Select GPU Backend")
+        // Default: first available backend is selected
+        let defaults: Vec<bool> = all_backends.iter().map(|b| b.is_available()).collect();
+
+        let selections = MultiSelect::with_theme(&self.theme)
+            .with_prompt("Select GPU Backend(s) (space to toggle, enter to confirm)")
             .items(&items)
-            .default(0)
+            .defaults(&defaults)
             .interact()
             .ok()?;
 
-        let backend = Backend::all()[selection];
-
-        if !backend.is_available() {
-            println!("Backend {} is not available on this system", backend.name());
-            return None;
+        if selections.is_empty() {
+            // Default to first available if nothing selected
+            return Some(vec![available[0]]);
         }
 
-        Some(backend)
+        let backends: Vec<Backend> = selections
+            .iter()
+            .filter_map(|&i| {
+                let backend = all_backends[i];
+                if backend.is_available() {
+                    Some(backend)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if backends.is_empty() {
+            println!("No available backends selected!");
+            None
+        } else {
+            Some(backends)
+        }
     }
 
     /// Select operations to benchmark
@@ -249,7 +279,7 @@ impl InteractiveTui {
 /// User's benchmark selection
 #[derive(Debug, Clone)]
 pub struct BenchmarkSelection {
-    pub backend: Backend,
+    pub backends: Vec<Backend>,
     pub operations: Vec<Operation>,
     pub config: BenchmarkConfig,
 }

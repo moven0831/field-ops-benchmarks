@@ -4,6 +4,7 @@ use field_ops_benchmarks::{
     config::BenchmarkConfig, reporter, results::BenchmarkReport, tui::InteractiveTui, Backend,
     Operation,
 };
+use indicatif::{ProgressBar, ProgressStyle};
 
 // Embedded metallib (compiled at build time)
 #[cfg(feature = "metal")]
@@ -44,6 +45,10 @@ struct Args {
     /// Output file for JSON results
     #[arg(long)]
     output: Option<String>,
+
+    /// Run full benchmark (10000 ops, 100 iterations) - takes much longer
+    #[arg(long)]
+    full: bool,
 }
 
 fn main() {
@@ -62,32 +67,50 @@ fn run_interactive_mode() {
     let tui = InteractiveTui::new();
 
     if let Some(selection) = tui.quick_run() {
-        println!();
-        println!(
-            "Running benchmarks for {} backend...",
-            selection.backend.name()
-        );
-        println!(
-            "Operations: {:?}",
-            selection
-                .operations
-                .iter()
-                .map(|o| o.name())
-                .collect::<Vec<_>>()
-        );
-        println!("Workgroup size: {}", selection.config.workgroup_size);
-        println!("Ops per thread: {}", selection.config.ops_per_thread);
-        println!();
+        let mut all_reports: Vec<BenchmarkReport> = Vec::new();
 
-        // Run benchmarks
-        let report = run_benchmarks(selection.backend, &selection.operations, &selection.config);
+        for backend in &selection.backends {
+            println!();
+            println!("Running benchmarks for {} backend...", backend.name());
 
-        // Print results
-        reporter::print_results(&report);
+            // Filter operations to those available for this backend
+            let backend_ops: Vec<Operation> = Operation::available_for(*backend)
+                .into_iter()
+                .filter(|op| selection.operations.contains(op))
+                .collect();
+
+            println!(
+                "Operations: {:?}",
+                backend_ops.iter().map(|o| o.name()).collect::<Vec<_>>()
+            );
+            println!("Workgroup size: {}", selection.config.workgroup_size);
+            println!(
+                "Auto-calibrate: {}",
+                if selection.config.auto_calibrate {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
+            println!();
+
+            // Run benchmarks
+            let report = run_benchmarks(*backend, &backend_ops, &selection.config);
+
+            // Print results
+            reporter::print_results(&report);
+            all_reports.push(report);
+        }
+
+        // Print comparison if multiple backends
+        if all_reports.len() > 1 {
+            reporter::print_comparison(&all_reports);
+        }
 
         // Ask to save
         if let Some(filename) = tui.ask_save_results() {
-            if let Err(e) = reporter::export_json(&report, &filename) {
+            let combined = reporter::merge_reports(&all_reports);
+            if let Err(e) = reporter::export_json(&combined, &filename) {
                 eprintln!("Failed to save results: {}", e);
             } else {
                 println!("Results saved to {}", filename);
@@ -141,10 +164,20 @@ fn run_batch_mode(args: Args) {
         }
     };
 
-    let config = BenchmarkConfig::default()
-        .with_workgroup_size(args.workgroup)
-        .with_ops_per_thread(args.ops)
-        .with_iterations(args.iterations);
+    let config = if args.full {
+        // Full benchmark mode: high ops, many iterations, no auto-calibrate
+        BenchmarkConfig::default()
+            .with_workgroup_size(args.workgroup)
+            .with_ops_per_thread(10_000)
+            .with_iterations(100)
+            .with_auto_calibrate(false)
+    } else {
+        // Default: use auto-calibration for fast benchmarks
+        BenchmarkConfig::default()
+            .with_workgroup_size(args.workgroup)
+            .with_ops_per_thread(args.ops)
+            .with_iterations(args.iterations)
+    };
 
     let report = run_benchmarks(backend, &operations, &config);
 
@@ -179,10 +212,20 @@ fn run_comparison_mode(args: Args) {
         return;
     }
 
-    let config = BenchmarkConfig::default()
-        .with_workgroup_size(args.workgroup)
-        .with_ops_per_thread(args.ops)
-        .with_iterations(args.iterations);
+    let config = if args.full {
+        // Full benchmark mode: high ops, many iterations, no auto-calibrate
+        BenchmarkConfig::default()
+            .with_workgroup_size(args.workgroup)
+            .with_ops_per_thread(10_000)
+            .with_iterations(100)
+            .with_auto_calibrate(false)
+    } else {
+        // Default: use auto-calibration for fast benchmarks
+        BenchmarkConfig::default()
+            .with_workgroup_size(args.workgroup)
+            .with_ops_per_thread(args.ops)
+            .with_iterations(args.iterations)
+    };
 
     let mut all_reports: Vec<BenchmarkReport> = Vec::new();
 
@@ -262,7 +305,6 @@ fn run_benchmarks(
 fn run_metal_benchmarks(operations: &[Operation], config: &BenchmarkConfig) -> BenchmarkReport {
     use field_ops_benchmarks::metal::MetalRunner;
 
-    let info_style = Style::new().dim();
     let error_style = Style::new().red();
 
     // Create Metal runner
@@ -291,19 +333,29 @@ fn run_metal_benchmarks(operations: &[Operation], config: &BenchmarkConfig) -> B
 
     let mut report = BenchmarkReport::new(device_name, "Metal".to_string());
 
-    // Run each benchmark
+    // Run each benchmark with spinner
     for op in operations {
-        println!(
-            "{}",
-            info_style.apply_to(format!("  Running {}...", op.name()))
+        // Create spinner for each operation
+        let spinner = ProgressBar::new_spinner();
+        spinner.set_style(
+            ProgressStyle::default_spinner()
+                .template("{spinner:.green} {msg} [{elapsed_precise}]")
+                .unwrap(),
         );
+        spinner.set_message(format!("Running {}...", op.name()));
+        spinner.enable_steady_tick(std::time::Duration::from_millis(100));
 
-        match runner.run_benchmark(*op, config) {
+        // Get operation-specific config
+        let op_config = config.for_operation(*op);
+
+        match runner.run_benchmark(*op, &op_config) {
             Ok(result) => {
+                let time_ms = result.min_ns as f64 / 1_000_000.0;
+                spinner.finish_with_message(format!("✓ {} ({:.2}ms)", op.name(), time_ms));
                 report.add_result(result);
             }
             Err(e) => {
-                eprintln!("{}", error_style.apply_to(format!("    Failed: {}", e)));
+                spinner.finish_with_message(format!("✗ {} failed: {}", op.name(), e));
             }
         }
     }
@@ -315,7 +367,6 @@ fn run_metal_benchmarks(operations: &[Operation], config: &BenchmarkConfig) -> B
 fn run_webgpu_benchmarks(operations: &[Operation], config: &BenchmarkConfig) -> BenchmarkReport {
     use field_ops_benchmarks::webgpu::WebGpuRunner;
 
-    let info_style = Style::new().dim();
     let error_style = Style::new().red();
 
     // Create WebGPU runner
@@ -335,19 +386,29 @@ fn run_webgpu_benchmarks(operations: &[Operation], config: &BenchmarkConfig) -> 
 
     let mut report = BenchmarkReport::new(device_name, "WebGPU".to_string());
 
-    // Run each benchmark
+    // Run each benchmark with spinner
     for op in operations {
-        println!(
-            "{}",
-            info_style.apply_to(format!("  Running {}...", op.name()))
+        // Create spinner for each operation
+        let spinner = ProgressBar::new_spinner();
+        spinner.set_style(
+            ProgressStyle::default_spinner()
+                .template("{spinner:.green} {msg} [{elapsed_precise}]")
+                .unwrap(),
         );
+        spinner.set_message(format!("Running {}...", op.name()));
+        spinner.enable_steady_tick(std::time::Duration::from_millis(100));
 
-        match runner.run_benchmark(*op, config) {
+        // Get operation-specific config
+        let op_config = config.for_operation(*op);
+
+        match runner.run_benchmark(*op, &op_config) {
             Ok(result) => {
+                let time_ms = result.min_ns as f64 / 1_000_000.0;
+                spinner.finish_with_message(format!("✓ {} ({:.2}ms)", op.name(), time_ms));
                 report.add_result(result);
             }
             Err(e) => {
-                eprintln!("{}", error_style.apply_to(format!("    Failed: {}", e)));
+                spinner.finish_with_message(format!("✗ {} failed: {}", op.name(), e));
             }
         }
     }
