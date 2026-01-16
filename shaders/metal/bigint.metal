@@ -84,31 +84,6 @@ inline uint bigint_sub_const(thread BigInt256& result, BigInt256 a, constant uin
     return borrow;
 }
 
-// BigInt256 x BigInt256 -> BigInt512 multiplication (schoolbook)
-inline BigInt512 bigint_mul_wide(BigInt256 a, BigInt256 b) {
-    BigInt512 result;
-    for (uint i = 0u; i < 32u; i++) {
-        result.limbs[i] = 0u;
-    }
-
-    for (uint i = 0u; i < NUM_LIMBS; i++) {
-        uint carry = 0u;
-        for (uint j = 0u; j < NUM_LIMBS; j++) {
-            uint product = a.limbs[i] * b.limbs[j] + result.limbs[i + j] + carry;
-            result.limbs[i + j] = product & W_mask;
-            carry = product >> W;
-        }
-        // Propagate remaining carry
-        for (uint k = i + NUM_LIMBS; carry != 0u && k < 32u; k++) {
-            uint sum = result.limbs[k] + carry;
-            result.limbs[k] = sum & W_mask;
-            carry = sum >> W;
-        }
-    }
-
-    return result;
-}
-
 // BigInt256 squaring -> BigInt512 (optimized)
 inline BigInt512 bigint_sqr_wide(BigInt256 a) {
     BigInt512 result;

@@ -181,7 +181,6 @@ fn operation_to_function_name(operation: Operation) -> String {
         Operation::U32Baseline => "bench_u32_baseline".to_string(),
         Operation::U64Native => "bench_u64_native".to_string(),
         Operation::U64Emulated => "bench_u64_emulated".to_string(),
-        Operation::BigIntMul => "bench_bigint_mul".to_string(),
         Operation::FieldMul => "bench_field_mul".to_string(),
         Operation::FieldAdd => "bench_field_add".to_string(),
         Operation::FieldSub => "bench_field_sub".to_string(),

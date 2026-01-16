@@ -40,10 +40,6 @@ impl WebGpuRunner {
             include_str!("../../shaders/wgsl/bench_u64_emulated.wgsl").to_string(),
         );
         shaders.insert(
-            Operation::BigIntMul,
-            include_str!("../../shaders/wgsl/bench_bigint_mul.wgsl").to_string(),
-        );
-        shaders.insert(
             Operation::FieldMul,
             include_str!("../../shaders/wgsl/bench_field_mul.wgsl").to_string(),
         );
@@ -217,7 +213,6 @@ fn operation_to_entry_point(operation: Operation) -> &'static str {
         Operation::U32Baseline => "bench_u32_baseline",
         Operation::U64Native => "bench_u64_native", // Not available in WebGPU
         Operation::U64Emulated => "bench_u64_emulated",
-        Operation::BigIntMul => "bench_bigint_mul",
         Operation::FieldMul => "bench_field_mul",
         Operation::FieldAdd => "bench_field_add",
         Operation::FieldSub => "bench_field_sub",

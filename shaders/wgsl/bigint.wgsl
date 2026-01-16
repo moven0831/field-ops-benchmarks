@@ -114,36 +114,6 @@ fn bigint_sub_p(a: array<u32, 16>) -> array<u32, 17> {
     return result;
 }
 
-// BigInt256 x BigInt256 -> BigInt512 multiplication (schoolbook)
-fn bigint_mul_wide(a: array<u32, 16>, b: array<u32, 16>) -> array<u32, 32> {
-    var result: array<u32, 32>;
-
-    // Initialize to zero
-    for (var i: u32 = 0u; i < 32u; i = i + 1u) {
-        result[i] = 0u;
-    }
-
-    // Schoolbook multiplication
-    for (var i: u32 = 0u; i < NUM_LIMBS; i = i + 1u) {
-        var carry: u32 = 0u;
-        for (var j: u32 = 0u; j < NUM_LIMBS; j = j + 1u) {
-            let product = a[i] * b[j] + result[i + j] + carry;
-            result[i + j] = product & W_mask;
-            carry = product >> W;
-        }
-        // Propagate remaining carry
-        var k: u32 = i + NUM_LIMBS;
-        while (carry != 0u && k < 32u) {
-            let sum = result[k] + carry;
-            result[k] = sum & W_mask;
-            carry = sum >> W;
-            k = k + 1u;
-        }
-    }
-
-    return result;
-}
-
 // Extract array<u32, 16> from first 16 elements
 fn extract_low(a: array<u32, 17>) -> array<u32, 16> {
     var result: array<u32, 16>;
