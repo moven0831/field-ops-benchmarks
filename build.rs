@@ -57,6 +57,7 @@ fn compile_metal_shaders(out_dir: &PathBuf) {
 
         let status = Command::new("xcrun")
             .args(["-sdk", "macosx", "metal"])
+            .args(["-O3"])  // Full optimization
             .args(["-c", metal_file.to_str().unwrap()])
             .args(["-I", shader_dir.to_str().unwrap()])
             .args(["-o", ir_path.to_str().unwrap()])
