@@ -448,6 +448,8 @@ fn run_placeholder_benchmarks(
                     Operation::FieldMul => 52.0,
                     Operation::FieldAdd => 1.0,
                     Operation::FieldSub => 1.0,
+                    Operation::U256Add => 0.8,
+                    Operation::U256Sub => 0.8,
                 };
                 let variance = (i as f64 / 100.0) * 0.1;
                 Duration::from_secs_f64((base_ms + variance) / 1000.0)

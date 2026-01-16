@@ -96,6 +96,8 @@ pub enum Operation {
     FieldMul,
     FieldAdd,
     FieldSub,
+    U256Add,
+    U256Sub,
 }
 
 impl Operation {
@@ -107,6 +109,8 @@ impl Operation {
             Operation::FieldMul => "field_mul",
             Operation::FieldAdd => "field_add",
             Operation::FieldSub => "field_sub",
+            Operation::U256Add => "u256_add",
+            Operation::U256Sub => "u256_sub",
         }
     }
 
@@ -118,6 +122,8 @@ impl Operation {
             Operation::FieldMul => "BN254 Montgomery field multiplication",
             Operation::FieldAdd => "BN254 field addition",
             Operation::FieldSub => "BN254 field subtraction",
+            Operation::U256Add => "256-bit BigInt addition (no reduction)",
+            Operation::U256Sub => "256-bit BigInt subtraction (no reduction)",
         }
     }
 
@@ -135,6 +141,8 @@ impl Operation {
             Operation::FieldMul => 20,
             Operation::FieldAdd => 20,
             Operation::FieldSub => 20,
+            Operation::U256Add => 100,
+            Operation::U256Sub => 100,
         }
     }
 
@@ -151,6 +159,8 @@ impl Operation {
             Operation::FieldMul,
             Operation::FieldAdd,
             Operation::FieldSub,
+            Operation::U256Add,
+            Operation::U256Sub,
         ]
     }
 

@@ -184,5 +184,7 @@ fn operation_to_function_name(operation: Operation) -> String {
         Operation::FieldMul => "bench_field_mul".to_string(),
         Operation::FieldAdd => "bench_field_add".to_string(),
         Operation::FieldSub => "bench_field_sub".to_string(),
+        Operation::U256Add => "bench_u256_add".to_string(),
+        Operation::U256Sub => "bench_u256_sub".to_string(),
     }
 }
