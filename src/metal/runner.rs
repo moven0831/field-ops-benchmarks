@@ -178,13 +178,11 @@ impl MetalRunner {
 /// Map operation to Metal kernel function name
 fn operation_to_function_name(operation: Operation) -> String {
     match operation {
-        Operation::U32Baseline => "bench_u32_baseline".to_string(),
-        Operation::U64Native => "bench_u64_native".to_string(),
-        Operation::U64Emulated => "bench_u64_emulated".to_string(),
+        Operation::U32Add => "bench_u32_add".to_string(),
+        Operation::U64AddNative => "bench_u64_add".to_string(),
+        Operation::U64AddEmulated => "bench_u64_add".to_string(),
         Operation::FieldMul => "bench_field_mul".to_string(),
         Operation::FieldAdd => "bench_field_add".to_string(),
-        Operation::FieldSub => "bench_field_sub".to_string(),
         Operation::U256Add => "bench_u256_add".to_string(),
-        Operation::U256Sub => "bench_u256_sub".to_string(),
     }
 }

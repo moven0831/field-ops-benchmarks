@@ -32,12 +32,12 @@ impl WebGpuRunner {
 
         // Include shaders at compile time
         shaders.insert(
-            Operation::U32Baseline,
-            include_str!("../../shaders/wgsl/bench_u32_baseline.wgsl").to_string(),
+            Operation::U32Add,
+            include_str!("../../shaders/wgsl/bench_u32_add.wgsl").to_string(),
         );
         shaders.insert(
-            Operation::U64Emulated,
-            include_str!("../../shaders/wgsl/bench_u64_emulated.wgsl").to_string(),
+            Operation::U64AddEmulated,
+            include_str!("../../shaders/wgsl/bench_u64_add.wgsl").to_string(),
         );
         shaders.insert(
             Operation::FieldMul,
@@ -48,16 +48,8 @@ impl WebGpuRunner {
             include_str!("../../shaders/wgsl/bench_field_add.wgsl").to_string(),
         );
         shaders.insert(
-            Operation::FieldSub,
-            include_str!("../../shaders/wgsl/bench_field_sub.wgsl").to_string(),
-        );
-        shaders.insert(
             Operation::U256Add,
             include_str!("../../shaders/wgsl/bench_u256_add.wgsl").to_string(),
-        );
-        shaders.insert(
-            Operation::U256Sub,
-            include_str!("../../shaders/wgsl/bench_u256_sub.wgsl").to_string(),
         );
 
         shaders
@@ -218,13 +210,11 @@ impl WebGpuRunner {
 /// Map operation to WGSL entry point name
 fn operation_to_entry_point(operation: Operation) -> &'static str {
     match operation {
-        Operation::U32Baseline => "bench_u32_baseline",
-        Operation::U64Native => "bench_u64_native", // Not available in WebGPU
-        Operation::U64Emulated => "bench_u64_emulated",
+        Operation::U32Add => "bench_u32_add",
+        Operation::U64AddNative => "bench_u64_add", // Not available in WebGPU
+        Operation::U64AddEmulated => "bench_u64_add",
         Operation::FieldMul => "bench_field_mul",
         Operation::FieldAdd => "bench_field_add",
-        Operation::FieldSub => "bench_field_sub",
         Operation::U256Add => "bench_u256_add",
-        Operation::U256Sub => "bench_u256_sub",
     }
 }

@@ -129,13 +129,16 @@ impl BenchmarkReport {
         self.results.push(result);
     }
 
-    /// Calculate overhead of emulated vs native u64
+    /// Calculate overhead of emulated vs native u64 addition
     pub fn u64_overhead(&self) -> Option<f64> {
-        let native = self.results.iter().find(|r| r.operation == "u64_native")?;
+        let native = self
+            .results
+            .iter()
+            .find(|r| r.operation == "u64_add_native")?;
         let emulated = self
             .results
             .iter()
-            .find(|r| r.operation == "u64_emulated")?;
+            .find(|r| r.operation == "u64_add_emulated")?;
 
         if native.gops_per_second > 0.0 {
             Some(emulated.min_ms() / native.min_ms())

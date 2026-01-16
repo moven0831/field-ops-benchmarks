@@ -5,7 +5,9 @@ use std::io::Write;
 /// Get equivalent operation names for comparison matching
 fn get_equivalent_ops(op: &str) -> Vec<&'static str> {
     match op {
-        "u64_native" | "u64_emulated" | "u64" => vec!["u64_native", "u64_emulated"],
+        "u64_add_native" | "u64_add_emulated" | "u64_add" => {
+            vec!["u64_add_native", "u64_add_emulated"]
+        }
         _ => vec![],
     }
 }
@@ -13,7 +15,7 @@ fn get_equivalent_ops(op: &str) -> Vec<&'static str> {
 /// Get canonical display name for an operation
 fn get_display_name(op: &str) -> &str {
     match op {
-        "u64_native" | "u64_emulated" => "u64",
+        "u64_add_native" | "u64_add_emulated" => "u64_add",
         _ => op,
     }
 }

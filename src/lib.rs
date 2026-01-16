@@ -90,77 +90,67 @@ impl std::fmt::Display for Backend {
 /// Benchmark operation types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Operation {
-    U32Baseline,
-    U64Native,
-    U64Emulated,
+    U32Add,
+    U64AddNative,
+    U64AddEmulated,
     FieldMul,
     FieldAdd,
-    FieldSub,
     U256Add,
-    U256Sub,
 }
 
 impl Operation {
     pub fn name(&self) -> &'static str {
         match self {
-            Operation::U32Baseline => "u32_baseline",
-            Operation::U64Native => "u64_native",
-            Operation::U64Emulated => "u64_emulated",
+            Operation::U32Add => "u32_add",
+            Operation::U64AddNative => "u64_add_native",
+            Operation::U64AddEmulated => "u64_add_emulated",
             Operation::FieldMul => "field_mul",
             Operation::FieldAdd => "field_add",
-            Operation::FieldSub => "field_sub",
             Operation::U256Add => "u256_add",
-            Operation::U256Sub => "u256_sub",
         }
     }
 
     pub fn description(&self) -> &'static str {
         match self {
-            Operation::U32Baseline => "Native u32 multiply-add",
-            Operation::U64Native => "Native 64-bit operations (Metal only)",
-            Operation::U64Emulated => "u64 via u32 pairs with carry (WebGPU only)",
+            Operation::U32Add => "Native u32 addition",
+            Operation::U64AddNative => "Native 64-bit addition (Metal only)",
+            Operation::U64AddEmulated => "u64 addition via u32 pairs with carry (WebGPU only)",
             Operation::FieldMul => "BN254 Montgomery field multiplication",
             Operation::FieldAdd => "BN254 field addition",
-            Operation::FieldSub => "BN254 field subtraction",
             Operation::U256Add => "256-bit BigInt addition (no reduction)",
-            Operation::U256Sub => "256-bit BigInt subtraction (no reduction)",
         }
     }
 
     /// Returns true if this operation requires native u64 support
     pub fn requires_native_u64(&self) -> bool {
-        matches!(self, Operation::U64Native)
+        matches!(self, Operation::U64AddNative)
     }
 
     /// Returns calibrated ops_per_thread for fast execution (~3-5 seconds per operation)
     pub fn calibrated_ops_per_thread(&self) -> u32 {
         match self {
-            Operation::U32Baseline => 1_000,
-            Operation::U64Native => 1_000,
-            Operation::U64Emulated => 500,
+            Operation::U32Add => 1_000,
+            Operation::U64AddNative => 1_000,
+            Operation::U64AddEmulated => 500,
             Operation::FieldMul => 20,
             Operation::FieldAdd => 20,
-            Operation::FieldSub => 20,
             Operation::U256Add => 100,
-            Operation::U256Sub => 100,
         }
     }
 
     /// Returns true if this operation is only for backends without native u64
     pub fn is_emulation_only(&self) -> bool {
-        matches!(self, Operation::U64Emulated)
+        matches!(self, Operation::U64AddEmulated)
     }
 
     pub fn all() -> Vec<Operation> {
         vec![
-            Operation::U32Baseline,
-            Operation::U64Native,
-            Operation::U64Emulated,
+            Operation::U32Add,
+            Operation::U64AddNative,
+            Operation::U64AddEmulated,
             Operation::FieldMul,
             Operation::FieldAdd,
-            Operation::FieldSub,
             Operation::U256Add,
-            Operation::U256Sub,
         ]
     }
 
@@ -169,11 +159,11 @@ impl Operation {
         Self::all()
             .into_iter()
             .filter(|op| {
-                // u64_native only available on backends with native u64 support
+                // u64_add_native only available on backends with native u64 support
                 if op.requires_native_u64() {
                     backend.has_native_u64()
                 }
-                // u64_emulated only needed for backends without native u64
+                // u64_add_emulated only needed for backends without native u64
                 else if op.is_emulation_only() {
                     !backend.has_native_u64()
                 } else {

@@ -442,14 +442,12 @@ fn run_placeholder_benchmarks(
         let timings: Vec<Duration> = (0..config.measurement_iterations)
             .map(|i| {
                 let base_ms = match op {
-                    Operation::U32Baseline => 0.5,
-                    Operation::U64Native => 0.9,
-                    Operation::U64Emulated => 2.0,
+                    Operation::U32Add => 0.5,
+                    Operation::U64AddNative => 0.9,
+                    Operation::U64AddEmulated => 2.0,
                     Operation::FieldMul => 52.0,
                     Operation::FieldAdd => 1.0,
-                    Operation::FieldSub => 1.0,
                     Operation::U256Add => 0.8,
-                    Operation::U256Sub => 0.8,
                 };
                 let variance = (i as f64 / 100.0) * 0.1;
                 Duration::from_secs_f64((base_ms + variance) / 1000.0)

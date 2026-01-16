@@ -4,12 +4,11 @@
 using namespace metal;
 
 // ============================================================================
-// Benchmark: Native u32 Multiply-Add Baseline
+// Benchmark: Native u32 Addition
 // ============================================================================
-// This benchmark measures the raw throughput of native u32 operations.
-// Used as a baseline to compare against emulated operations.
+// This benchmark measures the raw throughput of native u32 addition.
 
-kernel void bench_u32_baseline(
+kernel void bench_u32_add(
     device const uint* input [[buffer(0)]],
     device uint* output [[buffer(1)]],
     constant BenchParams& params [[buffer(2)]],
@@ -17,16 +16,15 @@ kernel void bench_u32_baseline(
 ) {
     // Initialize with thread-unique seed
     uint acc = params.seed ^ tid;
-    uint a = input[tid % 16];
     uint b = input[(tid + 8) % 16];
 
-    // Main benchmark loop - multiply-add operations
+    // Main benchmark loop - addition operations
     for (uint i = 0; i < params.iterations; i++) {
-        // Multiply-add: acc = acc * a + b
-        acc = acc * a + b;
+        // Addition: acc = acc + b
+        acc = acc + b;
 
         // Data-dependent modification to prevent optimization
-        a = a ^ (acc & 0xFFu);
+        b = b ^ (acc & 0xFFu);
     }
 
     // Write result to prevent dead code elimination
