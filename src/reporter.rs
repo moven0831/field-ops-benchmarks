@@ -2,6 +2,22 @@ use crate::results::{BenchmarkReport, BenchmarkResult};
 use console::Style;
 use std::io::Write;
 
+/// Get equivalent operation names for comparison matching
+fn get_equivalent_ops(op: &str) -> Vec<&'static str> {
+    match op {
+        "u64_native" | "u64_emulated" | "u64" => vec!["u64_native", "u64_emulated"],
+        _ => vec![],
+    }
+}
+
+/// Get canonical display name for an operation
+fn get_display_name(op: &str) -> &str {
+    match op {
+        "u64_native" | "u64_emulated" => "u64",
+        _ => op,
+    }
+}
+
 /// Print benchmark results to console
 pub fn print_results(report: &BenchmarkReport) {
     let header_style = Style::new().bold().cyan();
@@ -129,12 +145,13 @@ pub fn print_comparison(reports: &[BenchmarkReport]) {
     );
     println!();
 
-    // Collect all unique operations across reports
+    // Collect all unique operations across reports using canonical names
     let mut all_ops: Vec<String> = Vec::new();
     for report in reports {
         for result in &report.results {
-            if !all_ops.contains(&result.operation) {
-                all_ops.push(result.operation.clone());
+            let canonical = get_display_name(&result.operation).to_string();
+            if !all_ops.contains(&canonical) {
+                all_ops.push(canonical);
             }
         }
     }
@@ -156,8 +173,16 @@ pub fn print_comparison(reports: &[BenchmarkReport]) {
 
         let mut gops_values: Vec<Option<f64>> = Vec::new();
 
+        // Get equivalent operation names for matching
+        let equivalents = get_equivalent_ops(op);
+
         for report in reports {
-            if let Some(result) = report.results.iter().find(|r| &r.operation == op) {
+            // Search for the operation or any equivalent
+            let result = report.results.iter().find(|r| {
+                &r.operation == op || equivalents.contains(&r.operation.as_str())
+            });
+
+            if let Some(result) = result {
                 print!(" {:>12.2} GOP/s", result.gops_per_second);
                 gops_values.push(Some(result.gops_per_second));
             } else {
