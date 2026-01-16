@@ -137,8 +137,8 @@ impl Operation {
             Operation::U64Emulated => 500,
             Operation::BigIntMul => 25,
             Operation::FieldMul => 20,
-            Operation::FieldAdd => 500,
-            Operation::FieldSub => 500,
+            Operation::FieldAdd => 20,
+            Operation::FieldSub => 20,
         }
     }
 
