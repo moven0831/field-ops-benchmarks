@@ -447,7 +447,6 @@ fn run_placeholder_benchmarks(
                     Operation::U64AddEmulated => 2.0,
                     Operation::FieldMul => 52.0,
                     Operation::FieldAdd => 1.0,
-                    Operation::U256Add => 0.8,
                     Operation::MersenneFieldAdd => 0.6,
                     Operation::MersenneFieldMul => 1.5,
                 };

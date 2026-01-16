@@ -48,10 +48,6 @@ impl WebGpuRunner {
             include_str!("../../shaders/wgsl/bench_field_add.wgsl").to_string(),
         );
         shaders.insert(
-            Operation::U256Add,
-            include_str!("../../shaders/wgsl/bench_u256_add.wgsl").to_string(),
-        );
-        shaders.insert(
             Operation::MersenneFieldAdd,
             include_str!("../../shaders/wgsl/bench_mersenne_field_add.wgsl").to_string(),
         );
@@ -223,7 +219,6 @@ fn operation_to_entry_point(operation: Operation) -> &'static str {
         Operation::U64AddEmulated => "bench_u64_add",
         Operation::FieldMul => "bench_field_mul",
         Operation::FieldAdd => "bench_field_add",
-        Operation::U256Add => "bench_u256_add",
         Operation::MersenneFieldAdd => "bench_mersenne_field_add",
         Operation::MersenneFieldMul => "bench_mersenne_field_mul",
     }
