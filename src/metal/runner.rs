@@ -52,7 +52,7 @@ impl MetalRunner {
 
         // Create buffers
         let total_threads = config.total_threads() as usize;
-        let input_buffer = self.create_input_buffer(total_threads, config.seed)?;
+        let input_buffer = self.create_input_buffer(config.seed)?;
         let output_buffer = self.create_output_buffer(total_threads)?;
         let params_buffer = self.create_params_buffer(config)?;
 
@@ -94,10 +94,11 @@ impl MetalRunner {
         ))
     }
 
-    /// Create input buffer with random data
-    fn create_input_buffer(&self, count: usize, seed: u32) -> Result<Buffer, BenchmarkError> {
-        let data: Vec<u32> = (0..count)
-            .map(|i| seed.wrapping_add(i as u32).wrapping_mul(0x9E3779B9))
+    /// Create input buffer with random data (16 values, matching shader access pattern)
+    fn create_input_buffer(&self, seed: u32) -> Result<Buffer, BenchmarkError> {
+        // Shaders only access input[(tid + i) % 16], so we only need 16 values
+        let data: Vec<u32> = (0..16u32)
+            .map(|i| seed.wrapping_add(i).wrapping_mul(0x9E3779B9))
             .collect();
 
         let buffer = self.ctx.device.new_buffer_with_data(
