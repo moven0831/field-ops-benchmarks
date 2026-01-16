@@ -18,6 +18,54 @@ inline BigInt256 field_reduce(BigInt256 a) {
     return a;
 }
 
+// CIOS Montgomery multiplication: computes (a * b * R^-1) mod p
+// Fuses multiplication and reduction in a single pass using only 18 limbs
+inline BigInt256 mont_mul_cios(BigInt256 a, BigInt256 b) {
+    uint t[18];
+    for (uint i = 0u; i < 18u; i++) {
+        t[i] = 0u;
+    }
+
+    for (uint i = 0u; i < NUM_LIMBS; i++) {
+        // Phase 1: Multiply-accumulate a[i] * b
+        uint c = 0u;
+        for (uint j = 0u; j < NUM_LIMBS; j++) {
+            uint prod = a.limbs[i] * b.limbs[j];
+            uint sum = t[j] + (prod & W_mask) + c;
+            t[j] = sum & W_mask;
+            c = (prod >> W) + (sum >> W);
+        }
+        uint sum16 = t[16] + c;
+        t[16] = sum16 & W_mask;
+        t[17] = t[17] + (sum16 >> W);
+
+        // Phase 2: Reduction - compute m and add m * p
+        uint m = (t[0] * MONTGOMERY_INV) & W_mask;
+        c = 0u;
+        for (uint j = 0u; j < NUM_LIMBS; j++) {
+            uint prod = m * BN254_P[j];
+            uint sum = t[j] + (prod & W_mask) + c;
+            t[j] = sum & W_mask;
+            c = (prod >> W) + (sum >> W);
+        }
+        uint sum16_2 = t[16] + c + t[17];
+        t[16] = sum16_2 & W_mask;
+        t[17] = sum16_2 >> W;
+
+        // Phase 3: Shift right (discard t[0] which is now 0)
+        for (uint j = 0u; j < 17u; j++) {
+            t[j] = t[j + 1];
+        }
+        t[17] = 0u;
+    }
+
+    BigInt256 result;
+    for (uint i = 0u; i < NUM_LIMBS; i++) {
+        result.limbs[i] = t[i];
+    }
+    return field_reduce(result);
+}
+
 // Field addition: (a + b) mod p
 // Assumes a, b < p
 inline BigInt256 field_add(BigInt256 a, BigInt256 b) {
@@ -92,8 +140,7 @@ inline BigInt256 mont_reduce(BigInt512 t) {
 // Field multiplication: (a * b) mod p using Montgomery multiplication
 // Inputs and output are in Montgomery form
 inline BigInt256 field_mul(BigInt256 a, BigInt256 b) {
-    BigInt512 product = bigint_mul_wide(a, b);
-    return mont_reduce(product);
+    return mont_mul_cios(a, b);
 }
 
 // Field squaring: a^2 mod p using Montgomery multiplication

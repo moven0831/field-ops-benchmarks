@@ -63,7 +63,55 @@ fn field_reduce(a: array<u32, 16>) -> array<u32, 16> {
     return a;
 }
 
-// BigInt256 multiplication
+// CIOS Montgomery multiplication: computes (a * b * R^-1) mod p
+// Fuses multiplication and reduction in a single pass using only 18 limbs
+fn mont_mul_cios(a: array<u32, 16>, b: array<u32, 16>) -> array<u32, 16> {
+    var t: array<u32, 18>;
+    for (var i: u32 = 0u; i < 18u; i = i + 1u) {
+        t[i] = 0u;
+    }
+
+    for (var i: u32 = 0u; i < NUM_LIMBS; i = i + 1u) {
+        // Phase 1: Multiply-accumulate a[i] * b
+        var c: u32 = 0u;
+        for (var j: u32 = 0u; j < NUM_LIMBS; j = j + 1u) {
+            let prod = a[i] * b[j];
+            let sum = t[j] + (prod & W_mask) + c;
+            t[j] = sum & W_mask;
+            c = (prod >> W) + (sum >> W);
+        }
+        let sum16 = t[16] + c;
+        t[16] = sum16 & W_mask;
+        t[17] = t[17] + (sum16 >> W);
+
+        // Phase 2: Reduction - compute m and add m * p
+        let m = (t[0] * MONTGOMERY_INV) & W_mask;
+        c = 0u;
+        for (var j: u32 = 0u; j < NUM_LIMBS; j = j + 1u) {
+            let prod = m * BN254_P[j];
+            let sum = t[j] + (prod & W_mask) + c;
+            t[j] = sum & W_mask;
+            c = (prod >> W) + (sum >> W);
+        }
+        let sum16_2 = t[16] + c + t[17];
+        t[16] = sum16_2 & W_mask;
+        t[17] = sum16_2 >> W;
+
+        // Phase 3: Shift right (discard t[0] which is now 0)
+        for (var j: u32 = 0u; j < 17u; j = j + 1u) {
+            t[j] = t[j + 1u];
+        }
+        t[17] = 0u;
+    }
+
+    var result: array<u32, 16>;
+    for (var i: u32 = 0u; i < NUM_LIMBS; i = i + 1u) {
+        result[i] = t[i];
+    }
+    return field_reduce(result);
+}
+
+// BigInt256 multiplication (kept for bigint_mul benchmark)
 fn bigint_mul_wide(a: array<u32, 16>, b: array<u32, 16>) -> array<u32, 32> {
     var result: array<u32, 32>;
     for (var i: u32 = 0u; i < 32u; i = i + 1u) {
@@ -124,10 +172,9 @@ fn mont_reduce(t: array<u32, 32>) -> array<u32, 16> {
     return field_reduce(result);
 }
 
-// Field multiplication
+// Field multiplication using CIOS
 fn field_mul(a: array<u32, 16>, b: array<u32, 16>) -> array<u32, 16> {
-    let product = bigint_mul_wide(a, b);
-    return mont_reduce(product);
+    return mont_mul_cios(a, b);
 }
 
 @compute @workgroup_size(64)
