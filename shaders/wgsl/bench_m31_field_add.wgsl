@@ -34,7 +34,7 @@ fn mersenne_add(a: u32, b: u32) -> u32 {
 }
 
 @compute @workgroup_size(64)
-fn bench_mersenne_field_add(@builtin(global_invocation_id) global_id: vec3<u32>) {
+fn bench_m31_field_add(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let tid = global_id.x;
 
     // Initialize with thread-unique seed, reduced to field

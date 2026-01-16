@@ -49,11 +49,11 @@ impl WebGpuRunner {
         );
         shaders.insert(
             Operation::MersenneFieldAdd,
-            include_str!("../../shaders/wgsl/bench_mersenne_field_add.wgsl").to_string(),
+            include_str!("../../shaders/wgsl/bench_m31_field_add.wgsl").to_string(),
         );
         shaders.insert(
             Operation::MersenneFieldMul,
-            include_str!("../../shaders/wgsl/bench_mersenne_field_mul.wgsl").to_string(),
+            include_str!("../../shaders/wgsl/bench_m31_field_mul.wgsl").to_string(),
         );
 
         shaders
@@ -219,7 +219,7 @@ fn operation_to_entry_point(operation: Operation) -> &'static str {
         Operation::U64AddEmulated => "bench_u64_add",
         Operation::Bn254FieldMul => "bench_bn254_field_mul",
         Operation::Bn254FieldAdd => "bench_bn254_field_add",
-        Operation::MersenneFieldAdd => "bench_mersenne_field_add",
-        Operation::MersenneFieldMul => "bench_mersenne_field_mul",
+        Operation::MersenneFieldAdd => "bench_m31_field_add",
+        Operation::MersenneFieldMul => "bench_m31_field_mul",
     }
 }

@@ -107,8 +107,8 @@ impl Operation {
             Operation::U64AddEmulated => "u64_add_emulated",
             Operation::Bn254FieldMul => "bn254_field_mul",
             Operation::Bn254FieldAdd => "bn254_field_add",
-            Operation::MersenneFieldAdd => "mersenne_field_add",
-            Operation::MersenneFieldMul => "mersenne_field_mul",
+            Operation::MersenneFieldAdd => "m31_field_add",
+            Operation::MersenneFieldMul => "m31_field_mul",
         }
     }
 

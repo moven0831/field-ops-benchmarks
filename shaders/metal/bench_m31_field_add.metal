@@ -27,7 +27,7 @@ inline uint mersenne_add(uint a, uint b) {
     return mersenne_reduce(sum);
 }
 
-kernel void bench_mersenne_field_add(
+kernel void bench_m31_field_add(
     device const uint* input [[buffer(0)]],
     device uint* output [[buffer(1)]],
     constant BenchParams& params [[buffer(2)]],

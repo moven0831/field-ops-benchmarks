@@ -33,7 +33,7 @@ inline uint mersenne_mul(uint a, uint b) {
     return mersenne_reduce_u64(product);
 }
 
-kernel void bench_mersenne_field_mul(
+kernel void bench_m31_field_mul(
     device const uint* input [[buffer(0)]],
     device uint* output [[buffer(1)]],
     constant BenchParams& params [[buffer(2)]],

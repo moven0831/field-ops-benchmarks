@@ -158,6 +158,20 @@ pub fn print_comparison(reports: &[BenchmarkReport]) {
         }
     }
 
+    // Sort operations in a logical order
+    fn get_operation_order(op: &str) -> usize {
+        match op {
+            "u32_add" => 0,
+            "u64_add" => 1,
+            "m31_field_add" => 2,
+            "m31_field_mul" => 3,
+            "bn254_field_add" => 4,
+            "bn254_field_mul" => 5,
+            _ => 100,
+        }
+    }
+    all_ops.sort_by_key(|op| get_operation_order(op));
+
     // Print header with backend names
     print!("{:<20}", label_style.apply_to("Operation"));
     for report in reports {
