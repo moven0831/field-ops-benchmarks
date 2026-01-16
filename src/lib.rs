@@ -96,6 +96,8 @@ pub enum Operation {
     FieldMul,
     FieldAdd,
     U256Add,
+    MersenneFieldAdd,
+    MersenneFieldMul,
 }
 
 impl Operation {
@@ -107,6 +109,8 @@ impl Operation {
             Operation::FieldMul => "field_mul",
             Operation::FieldAdd => "field_add",
             Operation::U256Add => "u256_add",
+            Operation::MersenneFieldAdd => "mersenne_field_add",
+            Operation::MersenneFieldMul => "mersenne_field_mul",
         }
     }
 
@@ -118,6 +122,8 @@ impl Operation {
             Operation::FieldMul => "BN254 Montgomery field multiplication",
             Operation::FieldAdd => "BN254 field addition",
             Operation::U256Add => "256-bit BigInt addition (no reduction)",
+            Operation::MersenneFieldAdd => "Mersenne (2^31-1) field addition",
+            Operation::MersenneFieldMul => "Mersenne (2^31-1) field multiplication",
         }
     }
 
@@ -135,6 +141,8 @@ impl Operation {
             Operation::FieldMul => 20,
             Operation::FieldAdd => 20,
             Operation::U256Add => 100,
+            Operation::MersenneFieldAdd => 500,
+            Operation::MersenneFieldMul => 200,
         }
     }
 
@@ -151,6 +159,8 @@ impl Operation {
             Operation::FieldMul,
             Operation::FieldAdd,
             Operation::U256Add,
+            Operation::MersenneFieldAdd,
+            Operation::MersenneFieldMul,
         ]
     }
 
