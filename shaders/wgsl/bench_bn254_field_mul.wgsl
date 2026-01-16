@@ -152,7 +152,7 @@ fn field_mul(a: array<u32, 16>, b: array<u32, 16>) -> array<u32, 16> {
 }
 
 @compute @workgroup_size(64)
-fn bench_field_mul(@builtin(global_invocation_id) global_id: vec3<u32>) {
+fn bench_bn254_field_mul(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let tid = global_id.x;
 
     // Initialize field elements

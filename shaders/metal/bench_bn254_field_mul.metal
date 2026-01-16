@@ -1,14 +1,15 @@
 #include <metal_stdlib>
-#include "field.metal"
+#include "bn254_field.metal"
 
 using namespace metal;
 
 // ============================================================================
-// Benchmark: BN254 Field Addition
+// Benchmark: BN254 Field Multiplication (Montgomery)
 // ============================================================================
-// Tests modular addition for BN254 base field.
+// Tests Montgomery multiplication for the BN254 base field.
+// This is the most critical operation for ZK proof systems.
 
-kernel void bench_field_add(
+kernel void bench_bn254_field_mul(
     device const uint* input [[buffer(0)]],
     device uint* output [[buffer(1)]],
     constant BenchParams& params [[buffer(2)]],
@@ -27,19 +28,19 @@ kernel void bench_field_add(
     a = field_reduce(a);
     b = field_reduce(b);
 
-    // Accumulator
+    // Accumulator in Montgomery form
     BigInt256 acc = a;
 
     // Main benchmark loop
     for (uint i = 0; i < params.iterations; i++) {
-        // Field addition
-        acc = field_add(acc, b);
+        // Field multiplication (Montgomery)
+        acc = field_mul(acc, b);
 
-        // Data-dependent modification
+        // Data-dependent modification to prevent optimization
         b.limbs[0] = (b.limbs[0] ^ (acc.limbs[0] & 0xFFu)) & W_mask;
     }
 
-    // Write result
+    // Write result (XOR all limbs to single value)
     uint result = 0u;
     for (uint i = 0; i < NUM_LIMBS; i++) {
         result ^= acc.limbs[i];
