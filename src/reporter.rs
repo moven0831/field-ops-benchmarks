@@ -181,7 +181,10 @@ pub fn print_comparison(reports: &[BenchmarkReport]) {
         print!(" {:>12}", label_style.apply_to("Ratio"));
     }
     println!();
-    println!("{}", "-".repeat(20 + reports.len() * 16 + if reports.len() == 2 { 13 } else { 0 }));
+    println!(
+        "{}",
+        "-".repeat(20 + reports.len() * 16 + if reports.len() == 2 { 13 } else { 0 })
+    );
 
     // Print comparison for each operation
     for op in &all_ops {
@@ -194,9 +197,10 @@ pub fn print_comparison(reports: &[BenchmarkReport]) {
 
         for report in reports {
             // Search for the operation or any equivalent
-            let result = report.results.iter().find(|r| {
-                &r.operation == op || equivalents.contains(&r.operation.as_str())
-            });
+            let result = report
+                .results
+                .iter()
+                .find(|r| &r.operation == op || equivalents.contains(&r.operation.as_str()));
 
             if let Some(result) = result {
                 print!(" {:>12.2} GOP/s", result.gops_per_second);
@@ -229,7 +233,8 @@ pub fn print_comparison(reports: &[BenchmarkReport]) {
     if reports.len() == 2 {
         println!(
             "{}",
-            label_style.apply_to("Ratio: First backend / Second backend (higher = first is faster)")
+            label_style
+                .apply_to("Ratio: First backend / Second backend (higher = first is faster)")
         );
     }
 
@@ -247,10 +252,7 @@ pub fn merge_reports(reports: &[BenchmarkReport]) -> BenchmarkReport {
     let device_names: Vec<&str> = reports.iter().map(|r| r.device_name.as_str()).collect();
     let vendors: Vec<&str> = reports.iter().map(|r| r.device_vendor.as_str()).collect();
 
-    let mut combined = BenchmarkReport::new(
-        device_names.join(" + "),
-        vendors.join(" + "),
-    );
+    let mut combined = BenchmarkReport::new(device_names.join(" + "), vendors.join(" + "));
 
     for report in reports {
         for result in &report.results {

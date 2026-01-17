@@ -89,24 +89,27 @@ impl WebGpuRunner {
         let params_buffer = self.create_params_buffer(config);
 
         // Create bind group
-        let bind_group = self.ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Benchmark Bind Group"),
-            layout: &pipeline.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: input_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: output_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: params_buffer.as_entire_binding(),
-                },
-            ],
-        });
+        let bind_group = self
+            .ctx
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Benchmark Bind Group"),
+                layout: &pipeline.bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: input_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: output_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: params_buffer.as_entire_binding(),
+                    },
+                ],
+            });
 
         // Warmup runs
         for _ in 0..config.warmup_iterations {
@@ -187,7 +190,12 @@ impl WebGpuRunner {
     }
 
     /// Dispatch the compute shader
-    fn dispatch(&self, pipeline: &WebGpuPipeline, bind_group: &wgpu::BindGroup, config: &BenchmarkConfig) {
+    fn dispatch(
+        &self,
+        pipeline: &WebGpuPipeline,
+        bind_group: &wgpu::BindGroup,
+        config: &BenchmarkConfig,
+    ) {
         let mut encoder = self
             .ctx
             .device

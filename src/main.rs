@@ -243,7 +243,11 @@ fn run_comparison_mode(args: Args) {
                     if Operation::available_for(*backend).contains(&op) {
                         vec![op]
                     } else {
-                        println!("  Operation {} not available for {}", op_name, backend.name());
+                        println!(
+                            "  Operation {} not available for {}",
+                            op_name,
+                            backend.name()
+                        );
                         continue;
                     }
                 } else {
