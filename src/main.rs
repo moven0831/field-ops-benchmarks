@@ -466,7 +466,6 @@ fn run_placeholder_benchmarks(
             config.total_threads(),
             config.ops_per_thread,
             &timings,
-            Some(1.5),
         );
         report.add_result(result);
     }

@@ -133,7 +133,6 @@ impl WebGpuRunner {
             config.total_threads(),
             config.ops_per_thread,
             &timings,
-            None, // WebGPU doesn't expose GPU clock
         ))
     }
 

@@ -31,7 +31,6 @@ pub struct BenchmarkResult {
 
     /// Derived metrics
     pub gops_per_second: f64,
-    pub cycles_per_op: Option<f64>,
 }
 
 impl BenchmarkResult {
@@ -43,7 +42,6 @@ impl BenchmarkResult {
         total_threads: u64,
         ops_per_thread: u32,
         timings: &[Duration],
-        gpu_clock_ghz: Option<f64>,
     ) -> Self {
         let timings_ns: Vec<u64> = timings.iter().map(|d| d.as_nanos() as u64).collect();
 
@@ -68,12 +66,6 @@ impl BenchmarkResult {
             0.0
         };
 
-        // Estimate cycles per operation
-        let cycles_per_op = gpu_clock_ghz.map(|clock| {
-            let total_cycles = (min_ns as f64 / 1e9) * clock * 1e9;
-            total_cycles / total_operations as f64
-        });
-
         Self {
             backend: backend.name().to_string(),
             operation: operation.name().to_string(),
@@ -86,7 +78,6 @@ impl BenchmarkResult {
             mean_ns,
             std_dev_ns,
             gops_per_second,
-            cycles_per_op,
         }
     }
 

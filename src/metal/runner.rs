@@ -90,7 +90,6 @@ impl MetalRunner {
             config.total_threads(),
             config.ops_per_thread,
             &timings,
-            None, // GPU clock detection not implemented; cycles_per_op unavailable
         ))
     }
 
