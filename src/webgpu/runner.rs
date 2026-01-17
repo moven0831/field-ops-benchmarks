@@ -154,7 +154,7 @@ impl WebGpuRunner {
         self.ctx.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Output Buffer"),
             size: (count * std::mem::size_of::<u32>()) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE,
             mapped_at_creation: false,
         })
     }

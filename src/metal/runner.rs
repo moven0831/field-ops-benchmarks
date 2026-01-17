@@ -90,7 +90,7 @@ impl MetalRunner {
             config.total_threads(),
             config.ops_per_thread,
             &timings,
-            Some(1.5), // TODO: Detect actual GPU clock
+            None, // GPU clock detection not implemented; cycles_per_op unavailable
         ))
     }
 
@@ -110,11 +110,11 @@ impl MetalRunner {
         Ok(buffer)
     }
 
-    /// Create output buffer
+    /// Create output buffer (StorageModePrivate for GPU-only access, matching wgpu behavior)
     fn create_output_buffer(&self, count: usize) -> Result<Buffer, BenchmarkError> {
         let buffer = self.ctx.device.new_buffer(
             (count * std::mem::size_of::<u32>()) as u64,
-            MTLResourceOptions::StorageModeShared,
+            MTLResourceOptions::StorageModePrivate,
         );
 
         Ok(buffer)
