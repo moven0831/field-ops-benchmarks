@@ -129,16 +129,16 @@ impl Operation {
         matches!(self, Operation::U64AddNative)
     }
 
-    /// Returns calibrated ops_per_thread for fast execution (~3-5 seconds per operation)
+    /// Returns calibrated ops_per_thread for stable measurements
     pub fn calibrated_ops_per_thread(&self) -> u32 {
         match self {
-            Operation::U32Add => 1_000,
-            Operation::U64AddNative => 1_000,
-            Operation::U64AddEmulated => 500,
-            Operation::Bn254FieldMul => 20,
-            Operation::Bn254FieldAdd => 20,
-            Operation::MersenneFieldAdd => 500,
-            Operation::MersenneFieldMul => 200,
+            Operation::U32Add => 100_000,
+            Operation::U64AddNative => 100_000,
+            Operation::U64AddEmulated => 100_000,
+            Operation::MersenneFieldAdd => 100_000,
+            Operation::MersenneFieldMul => 100_000,
+            Operation::Bn254FieldMul => 100,
+            Operation::Bn254FieldAdd => 100,
         }
     }
 
